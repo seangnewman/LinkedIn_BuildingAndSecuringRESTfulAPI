@@ -21,7 +21,12 @@ namespace LandonApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc(options => { options.Filters.Add<JsonExceptionFilter>(); }).SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc(options => { 
+                                                                    options.Filters.Add<JsonExceptionFilter>();
+                                                                    options.Filters.Add<RequireHttpsOnCloseAttribute>();
+      
+                                                                })
+                                                                .SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
 
 
@@ -35,7 +40,11 @@ namespace LandonApi
                 options.ReportApiVersions = true;
                 options.ApiVersionSelector = new CurrentImplementationApiVersionSelector(options);
             });
-            ;
+            services.AddCors(options =>
+            {
+                options.AddPolicy( "AllowMyApp",
+                                                    policy => policy.AllowAnyOrigin());
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -54,7 +63,8 @@ namespace LandonApi
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            app.UseCors("AllowMyApp");
+            
             app.UseMvc();
         }
     }
