@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace LandonApi.Models
 {
-    public abstract class Resource
+    public abstract class Resource : Link
     {
-        [JsonProperty(Order = -2)]           // This property is at top of all serialized responses
-        public string   Href { get; set; }      //  Every resource will include URI of resource, acts as id
+        [JsonIgnore]
+         public Link Self { get; set; }
     }
 }
