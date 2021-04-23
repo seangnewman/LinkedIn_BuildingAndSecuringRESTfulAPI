@@ -1,8 +1,13 @@
-﻿using LandonApi.Filters;
+﻿using AutoMapper;
+using LandonApi.Filters;
+using LandonApi.Infrastructure;
+using LandonApi.Models;
+using LandonApi.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NSwag.AspNetCore;
@@ -21,6 +26,17 @@ namespace LandonApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.Configure<HotelInfo>(Configuration.GetSection("Info"));
+
+
+            // Any service with DbContext needs the AddScope 
+            services.AddScoped<IRoomService, DefaultRoomService>();
+
+            // Use an in-memory db for quick dev and testing
+            // TODO : Swap out for real DB
+            services.AddDbContext<HotelApiDbContext>(options => options.UseInMemoryDatabase("landondb"));
+
             services.AddMvc(options => { 
                                                                     options.Filters.Add<JsonExceptionFilter>();
                                                                     options.Filters.Add<RequireHttpsOnCloseAttribute>();
@@ -40,6 +56,9 @@ namespace LandonApi
                 options.ReportApiVersions = true;
                 options.ApiVersionSelector = new CurrentImplementationApiVersionSelector(options);
             });
+
+            services.AddAutoMapper(options => options.AddProfile<MappingProfile>());
+
             services.AddCors(options =>
             {
                 options.AddPolicy( "AllowMyApp",
