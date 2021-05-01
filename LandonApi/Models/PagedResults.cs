@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 
 namespace LandonApi.Models
 {
-    public class Room : Resource
+    public class PagedResults<T>
     {
-        public string Name { get; set; }
-
-        public decimal Rate { get; set; }
+        public IEnumerable<T> Items { get; set; }
+        public int TotalSize { get; set; }
     }
 }

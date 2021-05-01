@@ -16,8 +16,8 @@ namespace LandonApi.Filters
         public JsonExceptionFilter(IHostingEnvironment env)
         {
             _env = env;
-            
         }
+
         public void OnException(ExceptionContext context)
         {
             var error = new ApiError();
@@ -29,17 +29,14 @@ namespace LandonApi.Filters
             }
             else
             {
-                error.Message = "A Server Error Occurred";
+                error.Message = "A server error occurred.";
                 error.Detail = context.Exception.Message;
             }
-
-           
 
             context.Result = new ObjectResult(error)
             {
                 StatusCode = 500
             };
-
         }
     }
 }

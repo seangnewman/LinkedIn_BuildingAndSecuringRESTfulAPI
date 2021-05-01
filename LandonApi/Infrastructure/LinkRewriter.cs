@@ -18,20 +18,14 @@ namespace LandonApi.Infrastructure
 
         public Link Rewrite(Link original)
         {
-            if (original == null)
-            {
-                return null;
-            }
+            if (original == null) return null;
 
             return new Link
             {
                 Href = _urlHelper.Link(original.RouteName, original.RouteValues),
-                Method = original.Method, 
+                Method = original.Method,
                 Relations = original.Relations
             };
-
-
-
         }
     }
 }
