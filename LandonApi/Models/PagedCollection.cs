@@ -7,22 +7,72 @@ using System.Threading.Tasks;
 
 namespace LandonApi.Models
 {
-    public class PagedCollection<T>:Collection<T>
+    public class PagedCollection<T> : Collection<T>
     {
-        public static PagedCollection<T> Create(Link self, T[] items, int size, PagingOptions pagingOptions) => new PagedCollection<T>
+        public static PagedCollection<T> Create(
+            Link self, T[] items, int size, PagingOptions pagingOptions)
+            => Create<PagedCollection<T>>(self, items, size, pagingOptions);
+
+        public static TResponse Create<TResponse>(
+            Link self, T[] items, int size, PagingOptions pagingOptions)
+            where TResponse : PagedCollection<T>, new()
+            => new TResponse
+            {
+                Self = self,
+                Value = items,
+                Size = size,
+                Offset = pagingOptions.Offset,
+                Limit = pagingOptions.Limit,
+                First = self,
+                Next = GetNextLink(self, size, pagingOptions),
+                Previous = GetPreviousLink(self, size, pagingOptions),
+                Last = GetLastLink(self, size, pagingOptions)
+            };
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? Offset { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? Limit { get; set; }
+
+        public int Size { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Link First { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Link Previous { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Link Next { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Link Last { get; set; }
+
+        private static Link GetNextLink(
+            Link self, int size, PagingOptions pagingOptions)
         {
-            Self = self,   
-            Value = items, 
-            Size = size, 
-            Offset = pagingOptions.Offset, 
-            Limit = pagingOptions.Limit,
-            First = self,
+            if (pagingOptions?.Limit == null) return null;
+            if (pagingOptions?.Offset == null) return null;
 
-            Next = GetNextLink(self, size, pagingOptions),
-            Previous = GetPreviousLink(self, size, pagingOptions),
-            Last = GetLastLink(self, size, pagingOptions)
+            var limit = pagingOptions.Limit.Value;
+            var offset = pagingOptions.Offset.Value;
 
-        };
+            var nextPage = offset + limit;
+            if (nextPage >= size)
+            {
+                return null;
+            }
+
+            var parameters = new RouteValueDictionary(self.RouteValues)
+            {
+                ["limit"] = limit,
+                ["offset"] = nextPage
+            };
+
+            var newLink = Link.ToCollection(self.RouteName, parameters);
+            return newLink;
+        }
 
         private static Link GetLastLink(Link self, int size, PagingOptions pagingOptions)
         {
@@ -78,46 +128,6 @@ namespace LandonApi.Models
 
             return newLink;
         }
-        private static Link GetNextLink(Link self, int size, PagingOptions pagingOptions)
-        {
-            if (pagingOptions?.Limit == null)
-                return null;
-            if (pagingOptions?.Offset == null)
-                return null;
-
-            var limit = pagingOptions.Limit.Value;
-            var offset = pagingOptions.Offset.Value;
-
-            var nextPage = offset + limit;
-            if (nextPage >= size)
-                return null;
-
-            var parameters = new RouteValueDictionary(self.RouteValues)
-            {
-                ["liit"] = limit,
-                ["offset"] = nextPage
-            };
-
-            var newLink = Link.ToCollection(self.RouteName, parameters);
-            return newLink;
-
-        }
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public int? Offset { get; set; }
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public int? Limit { get; set; }
-        public int Size { get; set; }
-
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Link First { get; set; }
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Link Previous { get; set; }
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Link Next { get; set; }
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Link Last { get; set; }
-
 
     }
 }

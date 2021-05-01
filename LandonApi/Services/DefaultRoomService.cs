@@ -14,9 +14,7 @@ namespace LandonApi.Services
         private readonly HotelApiDbContext _context;
         private readonly IConfigurationProvider _mappingConfiguration;
 
-        public DefaultRoomService(
-            HotelApiDbContext context,
-            IConfigurationProvider mappingConfiguration)
+        public DefaultRoomService( HotelApiDbContext context,   IConfigurationProvider mappingConfiguration)
         {
             _context = context;
             _mappingConfiguration = mappingConfiguration;
@@ -42,6 +40,24 @@ namespace LandonApi.Services
                 .ProjectTo<Room>(_mappingConfiguration);
 
             return await query.ToArrayAsync();
+        }
+
+        public async Task<PagedResults<Room>> GetRoomsAsync(PagingOptions pagingOptions, SortOptions<Room, RoomEntity> sortOptions)
+        {
+            IQueryable<RoomEntity> query = _context.Rooms;
+
+            query = sortOptions.Apply(query);
+
+            var size = await query.CountAsync();
+
+            var items = await query.Skip(pagingOptions.Offset.Value).Take(pagingOptions.Limit.Value).ProjectTo<Room>(_mappingConfiguration).ToArrayAsync();
+
+            return new PagedResults<Room>
+            {
+                Items = items,
+                TotalSize = size
+            };
+
         }
     }
 }
