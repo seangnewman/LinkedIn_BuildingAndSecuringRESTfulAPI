@@ -18,5 +18,5 @@ namespace LandonApi.Models
         public Address Location { get; set; }
     }
 
-    
+   
 }
