@@ -1,14 +1,14 @@
-﻿using LandonApi.Infrastructure;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
-namespace LandonApi.Models
+namespace LandonApi.Infrastructure
 {
-    internal class SortOptionsProcessor<T, TEntity>
+    public class SortOptionsProcessor<T, TEntity>
     {
-        private string[] _orderBy;
+        private readonly string[] _orderBy;
 
         public SortOptionsProcessor(string[] orderBy)
         {
@@ -17,17 +17,15 @@ namespace LandonApi.Models
 
         public IEnumerable<SortTerm> GetAllTerms()
         {
-            if (_orderBy == null)
-                yield break;
+            if (_orderBy == null) yield break;
 
-            foreach (var  term in _orderBy)
+            foreach (var term in _orderBy)
             {
-                if (string.IsNullOrEmpty(term))
-                    continue;
+                if (string.IsNullOrEmpty(term)) continue;
 
                 var tokens = term.Split(' ');
 
-                if(tokens.Length == 0)
+                if (tokens.Length == 0)
                 {
                     yield return new SortTerm { Name = term };
                     continue;
@@ -46,30 +44,27 @@ namespace LandonApi.Models
         public IEnumerable<SortTerm> GetValidTerms()
         {
             var queryTerms = GetAllTerms().ToArray();
-
-            if (!queryTerms.Any())
-                yield break;
+            if (!queryTerms.Any()) yield break;
 
             var declaredTerms = GetTermsFromModel();
 
             foreach (var term in queryTerms)
             {
-                var declaredTerm = declaredTerms.SingleOrDefault(x => x.Name.Equals(term.Name, StringComparison.OrdinalIgnoreCase));
-                if (declaredTerm == null)
-                    continue;
+                var declaredTerm = declaredTerms
+                    .SingleOrDefault(x => x.Name.Equals(term.Name, StringComparison.OrdinalIgnoreCase));
+                if (declaredTerm == null) continue;
 
                 yield return new SortTerm
                 {
                     Name = declaredTerm.Name,
+                    EntityName = declaredTerm.EntityName,
                     Descending = term.Descending,
                     Default = declaredTerm.Default
                 };
-
             }
-
         }
 
-        internal IQueryable<TEntity> Apply(IQueryable<TEntity> query)
+        public IQueryable<TEntity> Apply(IQueryable<TEntity> query)
         {
             var terms = GetValidTerms().ToArray();
 
@@ -78,38 +73,46 @@ namespace LandonApi.Models
                 terms = GetTermsFromModel().Where(t => t.Default).ToArray();
             }
 
-            if (!terms.Any())
-                return query;
+            if (!terms.Any()) return query;
 
             var modifiedQuery = query;
             var useThenBy = false;
 
             foreach (var term in terms)
             {
-                var propertyInfo = ExpressionHelper.GetPropertyInfo<TEntity>(term.Name);
-
+                var propertyInfo = ExpressionHelper
+                    .GetPropertyInfo<TEntity>(term.EntityName ?? term.Name);
                 var obj = ExpressionHelper.Parameter<TEntity>();
 
-                // Build the LINQ expression.... backwards
-                var key = ExpressionHelper.GetPropertyExpression(obj, propertyInfo);
+                // Build the LINQ expression backwards:
+                // query = query.OrderBy(x => x.Property);
 
-                var keySelector = ExpressionHelper.GetLambda(typeof(TEntity), propertyInfo.PropertyType, obj, key);
+                // x => x.Property
+                var key = ExpressionHelper
+                    .GetPropertyExpression(obj, propertyInfo);
+                var keySelector = ExpressionHelper
+                    .GetLambda(typeof(TEntity), propertyInfo.PropertyType, obj, key);
 
-                // query.OrderBy/ThenBy[Descending] (x => x.Property)
-                modifiedQuery = ExpressionHelper.CallOrderByOrThenBy(modifiedQuery, useThenBy, term.Descending, propertyInfo.PropertyType, keySelector);
+                // query.OrderBy/ThenBy[Descending](x => x.Property)
+                modifiedQuery = ExpressionHelper
+                    .CallOrderByOrThenBy(
+                        modifiedQuery, useThenBy, term.Descending, propertyInfo.PropertyType, keySelector);
 
-                useThenBy = true; 
-
-
+                useThenBy = true;
             }
+
             return modifiedQuery;
         }
 
-        private static IEnumerable<SortTerm> GetTermsFromModel() => typeof(T).GetTypeInfo().DeclaredProperties.Where(p => p.GetCustomAttributes<SortableAttribute>()
-                                                                                                                                                                                                     .Any())
-                                                                                                                                                                                                     .Select(p => new SortTerm {
-                                                                                                                                                                                                                                                        Name = p.Name,
-                                                                                                                                                                                                                                                        Default = p.GetCustomAttribute<SortableAttribute>().Default});
-
+        private static IEnumerable<SortTerm> GetTermsFromModel()
+            => typeof(T).GetTypeInfo()
+            .DeclaredProperties
+            .Where(p => p.GetCustomAttributes<SortableAttribute>().Any())
+            .Select(p => new SortTerm
+            {
+                Name = p.Name,
+                EntityName = p.GetCustomAttribute<SortableAttribute>().EntityProperty,
+                Default = p.GetCustomAttribute<SortableAttribute>().Default
+            });
     }
 }

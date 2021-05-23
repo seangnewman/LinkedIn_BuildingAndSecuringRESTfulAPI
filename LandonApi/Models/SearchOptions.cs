@@ -7,32 +7,29 @@ using System.Threading.Tasks;
 
 namespace LandonApi.Models
 {
-    public class SortOptions<T, TEntity> : IValidatableObject
+    public class SearchOptions<T, TEntity> : IValidatableObject
     {
-        public string[] OrderBy { get; set; }
+        public string[] Search { get; set; }
 
-        // ASP.NET Core calls this validate incoming parameters
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            var processor = new SortOptionsProcessor<T, TEntity>(OrderBy);
+            var processor = new SearchOptionsProcessor<T, TEntity>(Search);
 
             var validTerms = processor.GetValidTerms().Select(x => x.Name);
-
             var invalidTerms = processor.GetAllTerms().Select(x => x.Name)
                 .Except(validTerms, StringComparer.OrdinalIgnoreCase);
 
             foreach (var term in invalidTerms)
             {
                 yield return new ValidationResult(
-                    $"Invalid sort term '{term}'.",
-                    new[] { nameof(OrderBy) });
+                    $"Invalid search term '{term}'.",
+                    new[] { nameof(Search) });
             }
         }
 
-        // The service code will call this to apply these sort options to a database query
         public IQueryable<TEntity> Apply(IQueryable<TEntity> query)
         {
-            var processor = new SortOptionsProcessor<T, TEntity>(OrderBy);
+            var processor = new SearchOptionsProcessor<T, TEntity>(Search);
             return processor.Apply(query);
         }
     }
