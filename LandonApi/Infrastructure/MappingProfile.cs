@@ -33,7 +33,18 @@ namespace LandonApi.Infrastructure
                 .ForMember(dest => dest.Room, opt => opt.MapFrom(src =>
                     Link.To(
                         nameof(Controllers.RoomsController.GetRoomById),
-                        new { roomId = src.RoomId })));
+                        new { roomId = src.RoomId })))
+                .ForMember(dest => dest.Book, opt => opt.MapFrom(src =>
+                    FormMetadata.FromModel(new BookingForm
+                    {
+                        StartAt = src.StartAt.ToUniversalTime(),
+                        EndAt = src.EndAt.ToUniversalTime()
+                    },
+                    Link.ToForm(
+                        nameof(Controllers.RoomsController.CreateBookingForRoom),
+                        new { roomId = src.RoomId },
+                        Link.PostMethod,
+                        Form.CreateRelation))));
 
             CreateMap<BookingEntity, Booking>()
                 .ForMember(dest => dest.Total, opt => opt.MapFrom(src => src.Total / 100m))

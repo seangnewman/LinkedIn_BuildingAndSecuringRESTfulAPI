@@ -52,6 +52,11 @@ namespace LandonApi
             services
                 .AddMvc(options =>
                 {
+                    // Create cache profile
+                    options.CacheProfiles.Add("Static", new CacheProfile
+                    {
+                        Duration = 86400
+                    }); ;
                     options.Filters.Add<JsonExceptionFilter>();
                     options.Filters
                         .Add<RequireHttpsOrCloseAttribute>();
@@ -60,6 +65,8 @@ namespace LandonApi
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
                 .AddJsonOptions(options =>
                 {
+
+                   
                     // These should be the defaults, but we can be explicit:
                     options.SerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
                     options.SerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
@@ -92,6 +99,9 @@ namespace LandonApi
                     return new BadRequestObjectResult(errorResponse);
                 };
             });
+
+            // Addition of server-side caching
+            services.AddResponseCaching();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -112,6 +122,8 @@ namespace LandonApi
             {
                 app.UseHsts();
             }
+
+            app.UseResponseCaching();
 
             app.UseMvc();
         }

@@ -56,8 +56,11 @@ namespace LandonApi.Controllers
                 pagingOptions);
             collection.Openings = Link.ToCollection(nameof(GetAllRoomOpenings));
             collection.RoomsQuery = FormMetadata.FromResource<Room>(
-                Link.ToForm(nameof(GetAllRooms), null, Link.GetMethod, Form.QueryRelation));
-
+                Link.ToForm(
+                    nameof(GetAllRooms),
+                    null,
+                    Link.GetMethod,
+                    Form.QueryRelation));
 
             return collection;
         }
@@ -66,22 +69,33 @@ namespace LandonApi.Controllers
         [HttpGet("openings", Name = nameof(GetAllRoomOpenings))]
         [ProducesResponseType(400)]
         [ProducesResponseType(200)]
+        [ResponseCache(Duration =30, VaryByQueryKeys = new[] { "offset", "limit","orderBy", "search"})]
         public async Task<ActionResult<Collection<Opening>>> GetAllRoomOpenings(
             [FromQuery] PagingOptions pagingOptions,
             [FromQuery] SortOptions<Opening, OpeningEntity> sortOptions,
             [FromQuery] SearchOptions<Opening, OpeningEntity> searchOptions)
         {
+            // Testing server side caching, will remove after test satisfied
+            //await Task.Delay(3000);
             pagingOptions.Offset = pagingOptions.Offset ?? _defaultPagingOptions.Offset;
             pagingOptions.Limit = pagingOptions.Limit ?? _defaultPagingOptions.Limit;
 
             var openings = await _openingService.GetOpeningsAsync(
                 pagingOptions, sortOptions, searchOptions);
 
-            var collection = PagedCollection<Opening>.Create(
+            var collection = PagedCollection<Opening>.Create<OpeningsResponse>(
                 Link.ToCollection(nameof(GetAllRoomOpenings)),
                 openings.Items.ToArray(),
                 openings.TotalSize,
                 pagingOptions);
+
+            collection.OpeningsQuery = FormMetadata.FromResource<Opening>(
+                Link.ToForm(
+                    nameof(GetAllRoomOpenings),
+                    null,
+                    Link.GetMethod,
+                    Form.QueryRelation));
+
 
             return collection;
         }
